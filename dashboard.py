@@ -173,23 +173,49 @@ section[data-testid="stSidebar"] {
 
 @st.cache_resource
 def get_engine():
-    """Membuat koneksi ke Supabase PostgreSQL."""
-    try:
-        # Prioritas: Streamlit Secrets (cloud) → .env (lokal)
-        if "database" in st.secrets:
-            db = st.secrets["database"]
-            host, port, name = db["host"], db["port"], db["name"]
-            user, pw = db["user"], db["password"]
-        else:
-            host = os.getenv("DB_HOST")
-            port = os.getenv("DB_PORT", "5432")
-            name = os.getenv("DB_NAME", "postgres")
-            user = os.getenv("DB_USER", "postgres")
-            pw   = os.getenv("DB_PASSWORD")
+    """
+    Membuat koneksi ke Supabase PostgreSQL.
+    Prioritas: Streamlit Secrets (cloud) → file .env (lokal)
+    """
+    host = port = name = user = pw = None
 
+    # ── Coba baca dari Streamlit Secrets (untuk Streamlit Cloud) ──
+    # Dibungkus try/except karena akan crash di lokal jika tidak ada secrets.toml
+    try:
+        if "database" in st.secrets:
+            db   = st.secrets["database"]
+            host = db.get("host")
+            port = db.get("port", 5432)
+            name = db.get("name", "postgres")
+            user = db.get("user", "postgres")
+            pw   = db.get("password")
+    except Exception:
+        pass  # Tidak ada secrets.toml — lanjut ke .env
+
+    # ── Fallback ke .env (untuk lokal) ──
+    if not host or not pw:
+        host = os.getenv("DB_HOST")
+        port = os.getenv("DB_PORT", "5432")
+        name = os.getenv("DB_NAME", "postgres")
+        user = os.getenv("DB_USER", "postgres")
+        pw   = os.getenv("DB_PASSWORD")
+
+    # ── Validasi ──
+    if not host or not pw:
+        st.error(
+            "❌ Konfigurasi database belum lengkap.\n\n"
+            "**Jika dijalankan lokal:** pastikan file `.env` ada "
+            "di folder yang sama dengan `dashboard.py` dan sudah berisi "
+            "`DB_HOST` serta `DB_PASSWORD`.\n\n"
+            "**Jika di Streamlit Cloud:** buka App Settings → Secrets, "
+            "pastikan isinya sudah disimpan dengan benar lalu klik Reboot."
+        )
+        return None
+
+    # ── Buat koneksi ──
+    try:
         url = f"postgresql+psycopg2://{user}:{pw}@{host}:{port}/{name}"
         engine = create_engine(url, pool_pre_ping=True)
-        # Test koneksi
         with engine.connect() as conn:
             conn.execute(text("SELECT 1"))
         return engine
@@ -207,14 +233,19 @@ def load_daily(date_from: str, date_to: str) -> pd.DataFrame:
     engine = get_engine()
     if engine is None:
         return pd.DataFrame()
-    q = f"""
+    q = text(f"""
         SELECT * FROM clean_daily
         WHERE date BETWEEN '{date_from}' AND '{date_to}'
         ORDER BY date
-    """
-    df = pd.read_sql(q, engine)
-    df["date"] = pd.to_datetime(df["date"])
-    return df
+    """)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(q, conn)
+        df["date"] = pd.to_datetime(df["date"])
+        return df
+    except Exception as e:
+        st.error(f"❌ Gagal memuat data harian: {e}")
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -222,14 +253,19 @@ def load_hourly(date_from: str, date_to: str) -> pd.DataFrame:
     engine = get_engine()
     if engine is None:
         return pd.DataFrame()
-    q = f"""
+    q = text(f"""
         SELECT * FROM clean_hourly
         WHERE timestamp BETWEEN '{date_from}' AND '{date_to} 23:59:59'
         ORDER BY timestamp
-    """
-    df = pd.read_sql(q, engine)
-    df["timestamp"] = pd.to_datetime(df["timestamp"])
-    return df
+    """)
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(q, conn)
+        df["timestamp"] = pd.to_datetime(df["timestamp"])
+        return df
+    except Exception as e:
+        st.error(f"❌ Gagal memuat data per jam: {e}")
+        return pd.DataFrame()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -238,9 +274,13 @@ def load_latest() -> pd.Series:
     engine = get_engine()
     if engine is None:
         return pd.Series()
-    q = "SELECT * FROM clean_hourly ORDER BY timestamp DESC LIMIT 1"
-    df = pd.read_sql(q, engine)
-    return df.iloc[0] if len(df) > 0 else pd.Series()
+    q = text("SELECT * FROM clean_hourly ORDER BY timestamp DESC LIMIT 1")
+    try:
+        with engine.connect() as conn:
+            df = pd.read_sql(q, conn)
+        return df.iloc[0] if len(df) > 0 else pd.Series()
+    except Exception:
+        return pd.Series()
 
 
 @st.cache_data(ttl=3600, show_spinner=False)
@@ -248,9 +288,13 @@ def load_date_range():
     engine = get_engine()
     if engine is None:
         return None, None
-    q = "SELECT MIN(date)::date as mn, MAX(date)::date as mx FROM clean_daily"
-    row = pd.read_sql(q, engine).iloc[0]
-    return pd.to_datetime(row["mn"]), pd.to_datetime(row["mx"])
+    q = text("SELECT MIN(date)::date as mn, MAX(date)::date as mx FROM clean_daily")
+    try:
+        with engine.connect() as conn:
+            row = pd.read_sql(q, conn).iloc[0]
+        return pd.to_datetime(row["mn"]), pd.to_datetime(row["mx"])
+    except Exception:
+        return None, None
 
 
 # ─────────────────────────────────────────────
@@ -515,8 +559,11 @@ def chart_cloud_visibility(df_daily):
         line=dict(color="#0ea5e9", width=2),
         name="Visibilitas (km)",
     ), secondary_y=True)
+    # Buat layout tanpa key 'legend' dari PLOTLY_LAYOUT agar tidak duplikat
+    base = {k: v for k, v in PLOTLY_LAYOUT.items() if k != "legend"}
     fig.update_layout(
-        **PLOTLY_LAYOUT, title="Tutupan Awan & Visibilitas",
+        **base,
+        title="Tutupan Awan & Visibilitas",
         height=290,
         legend=dict(orientation="h", y=1.08, x=0, bgcolor="rgba(0,0,0,0)"),
     )
@@ -612,27 +659,45 @@ with st.sidebar:
         date_min = datetime(2022, 1, 1)
         date_max = datetime.today()
 
-    col_a, col_b = st.columns(2)
-    with col_a:
-        tgl_mulai = st.date_input("Dari", value=date_max - timedelta(days=90),
-                                   min_value=date_min, max_value=date_max)
-    with col_b:
-        tgl_akhir = st.date_input("Hingga", value=date_max,
-                                   min_value=date_min, max_value=date_max)
+    # Inisialisasi session_state untuk menyimpan pilihan tanggal
+    if "tgl_mulai" not in st.session_state:
+        st.session_state.tgl_mulai = (date_max - timedelta(days=90)).date() \
+            if hasattr(date_max, "date") else date_max - timedelta(days=90)
+    if "tgl_akhir" not in st.session_state:
+        st.session_state.tgl_akhir = date_max.date() \
+            if hasattr(date_max, "date") else date_max
 
-    # Shortcut periode
+    # Shortcut periode — harus SEBELUM date_input agar session_state terupdate dulu
     st.markdown("<div style='font-size:11px;color:#9ca3af;margin-bottom:6px'>Shortcut</div>",
                 unsafe_allow_html=True)
     c1, c2, c3 = st.columns(3)
     if c1.button("30H",  use_container_width=True):
-        tgl_mulai = date_max - timedelta(days=30)
-        tgl_akhir = date_max
+        st.session_state.tgl_mulai = (date_max - timedelta(days=30)).date() \
+            if hasattr(date_max, "date") else date_max - timedelta(days=30)
+        st.session_state.tgl_akhir = date_max.date() \
+            if hasattr(date_max, "date") else date_max
     if c2.button("90H",  use_container_width=True):
-        tgl_mulai = date_max - timedelta(days=90)
-        tgl_akhir = date_max
+        st.session_state.tgl_mulai = (date_max - timedelta(days=90)).date() \
+            if hasattr(date_max, "date") else date_max - timedelta(days=90)
+        st.session_state.tgl_akhir = date_max.date() \
+            if hasattr(date_max, "date") else date_max
     if c3.button("Semua", use_container_width=True):
-        tgl_mulai = date_min
-        tgl_akhir = date_max
+        st.session_state.tgl_mulai = date_min.date() \
+            if hasattr(date_min, "date") else date_min
+        st.session_state.tgl_akhir = date_max.date() \
+            if hasattr(date_max, "date") else date_max
+
+    col_a, col_b = st.columns(2)
+    with col_a:
+        tgl_mulai = st.date_input("Dari",
+                                   value=st.session_state.tgl_mulai,
+                                   min_value=date_min, max_value=date_max,
+                                   key="input_dari")
+    with col_b:
+        tgl_akhir = st.date_input("Hingga",
+                                   value=st.session_state.tgl_akhir,
+                                   min_value=date_min, max_value=date_max,
+                                   key="input_hingga")
 
     st.divider()
 

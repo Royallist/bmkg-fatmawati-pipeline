@@ -1,0 +1,50 @@
+name: BMKG Data Pipeline — Nightly Update
+ 
+on:
+  schedule:
+    # Setiap pukul 17:00 UTC = 00:00 WIB
+    - cron: "0 17 * * *"
+ 
+  # Bisa juga dijalankan manual dari tab Actions di GitHub
+  workflow_dispatch:
+ 
+jobs:
+  run-pipeline:
+    runs-on: ubuntu-latest
+ 
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+ 
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+ 
+      - name: Install dependencies
+        run: |
+          pip install pandas numpy psycopg2-binary sqlalchemy python-dotenv
+ 
+      - name: Download data raw dari Google Drive
+        # Opsional — aktifkan jika file raw disimpan di Google Drive
+        # Ganti GDRIVE_FILE_ID dengan ID file dari link sharing Google Drive
+        # Format link: https://drive.google.com/file/d/FILE_ID/view
+        run: |
+          pip install gdown -q
+          gdown "${{ secrets.GDRIVE_FILE_ID }}" -O RAW_SYNOP_REPORT.csv
+ 
+      - name: Jalankan pipeline cleaning + upload
+        env:
+          RAW_FILE_PATH: RAW_SYNOP_REPORT.csv
+          DB_HOST:       ${{ secrets.DB_HOST }}
+          DB_PORT:       ${{ secrets.DB_PORT }}
+          DB_NAME:       ${{ secrets.DB_NAME }}
+          DB_USER:       ${{ secrets.DB_USER }}
+          DB_PASSWORD:   ${{ secrets.DB_PASSWORD }}
+        run: |
+          python pipeline_db.py
+ 
+      - name: Notifikasi hasil (opsional)
+        if: failure()
+        run: echo "Pipeline gagal — cek log di atas untuk detail error"
+ 

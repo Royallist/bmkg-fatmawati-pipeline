@@ -21,20 +21,12 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# ─────────────────────────────────────────────
-# KONFIGURASI HALAMAN
-# ─────────────────────────────────────────────
-
 st.set_page_config(
     page_title="BMKG Fatmawati — Dashboard Cuaca",
     page_icon="🌤️",
     layout="wide",
     initial_sidebar_state="expanded",
 )
-
-# ─────────────────────────────────────────────
-# CSS CUSTOM — TAMPILAN PROFESIONAL
-# ─────────────────────────────────────────────
 
 st.markdown("""
 <style>
@@ -46,7 +38,7 @@ html, body, [class*="css"] {
 
 /* Header utama */
 .main-header {
-    background: linear-gradient(135deg, #1a6b9a 0%, #0d4f75 100%);
+    background: linear-gradient(135deg,
     color: white;
     padding: 24px 32px;
     border-radius: 12px;
@@ -78,7 +70,7 @@ html, body, [class*="css"] {
 /* Metric cards */
 .metric-card {
     background: white;
-    border: 1px solid #e8ecf0;
+    border: 1px solid
     border-radius: 10px;
     padding: 16px 20px;
     text-align: center;
@@ -86,7 +78,7 @@ html, body, [class*="css"] {
 }
 .metric-label {
     font-size: 11px;
-    color: #6b7280;
+    color:
     font-weight: 500;
     text-transform: uppercase;
     letter-spacing: .06em;
@@ -95,13 +87,13 @@ html, body, [class*="css"] {
 .metric-value {
     font-size: 28px;
     font-weight: 600;
-    color: #1a1f2e;
+    color:
     line-height: 1;
     font-family: 'DM Mono', monospace;
 }
 .metric-unit {
     font-size: 13px;
-    color: #9ca3af;
+    color:
     margin-left: 3px;
     font-weight: 400;
 }
@@ -109,21 +101,21 @@ html, body, [class*="css"] {
     font-size: 11px;
     margin-top: 4px;
 }
-.metric-delta.up   { color: #ef4444; }
-.metric-delta.down { color: #3b82f6; }
-.metric-delta.same { color: #9ca3af; }
+.metric-delta.up   { color:
+.metric-delta.down { color:
+.metric-delta.same { color:
 
 /* Section headers */
 .section-title {
     font-size: 14px;
     font-weight: 600;
-    color: #374151;
+    color:
     margin: 0 0 2px;
     letter-spacing: -0.1px;
 }
 .section-sub {
     font-size: 12px;
-    color: #9ca3af;
+    color:
     margin: 0 0 14px;
 }
 
@@ -143,7 +135,7 @@ html, body, [class*="css"] {
 /* Tabs custom */
 .stTabs [data-baseweb="tab-list"] {
     gap: 4px;
-    background: #f5f7fa;
+    background:
     padding: 4px;
     border-radius: 10px;
 }
@@ -156,20 +148,14 @@ html, body, [class*="css"] {
 
 /* Sidebar */
 section[data-testid="stSidebar"] {
-    background: #f9fafb;
-    border-right: 1px solid #e8ecf0;
+    background:
+    border-right: 1px solid
 }
 
 /* Hide Streamlit default branding */
-#MainMenu, footer, header { visibility: hidden; }
 .block-container { padding-top: 1rem; padding-bottom: 2rem; }
 </style>
 """, unsafe_allow_html=True)
-
-
-# ─────────────────────────────────────────────
-# KONEKSI DATABASE
-# ─────────────────────────────────────────────
 
 @st.cache_resource
 def get_engine():
@@ -179,8 +165,6 @@ def get_engine():
     """
     host = port = name = user = pw = None
 
-    # ── Coba baca dari Streamlit Secrets (untuk Streamlit Cloud) ──
-    # Dibungkus try/except karena akan crash di lokal jika tidak ada secrets.toml
     try:
         if "database" in st.secrets:
             db   = st.secrets["database"]
@@ -190,9 +174,8 @@ def get_engine():
             user = db.get("user", "postgres")
             pw   = db.get("password")
     except Exception:
-        pass  # Tidak ada secrets.toml — lanjut ke .env
+        pass
 
-    # ── Fallback ke .env (untuk lokal) ──
     if not host or not pw:
         host = os.getenv("DB_HOST")
         port = os.getenv("DB_PORT", "5432")
@@ -200,7 +183,6 @@ def get_engine():
         user = os.getenv("DB_USER", "postgres")
         pw   = os.getenv("DB_PASSWORD")
 
-    # ── Validasi ──
     if not host or not pw:
         st.error(
             "❌ Konfigurasi database belum lengkap.\n\n"
@@ -212,7 +194,6 @@ def get_engine():
         )
         return None
 
-    # ── Buat koneksi ──
     try:
         url = f"postgresql+psycopg2://{user}:{pw}@{host}:{port}/{name}"
         engine = create_engine(url, pool_pre_ping=True)
@@ -222,11 +203,6 @@ def get_engine():
     except Exception as e:
         st.error(f"❌ Gagal konek ke database: {e}")
         return None
-
-
-# ─────────────────────────────────────────────
-# FUNGSI LOAD DATA (dengan cache 1 jam)
-# ─────────────────────────────────────────────
 
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_daily(date_from: str, date_to: str) -> pd.DataFrame:
@@ -247,7 +223,6 @@ def load_daily(date_from: str, date_to: str) -> pd.DataFrame:
         st.error(f"❌ Gagal memuat data harian: {e}")
         return pd.DataFrame()
 
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_hourly(date_from: str, date_to: str) -> pd.DataFrame:
     engine = get_engine()
@@ -267,7 +242,6 @@ def load_hourly(date_from: str, date_to: str) -> pd.DataFrame:
         st.error(f"❌ Gagal memuat data per jam: {e}")
         return pd.DataFrame()
 
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_latest() -> pd.Series:
     """Ambil observasi terakhir untuk monitoring real-time."""
@@ -282,7 +256,6 @@ def load_latest() -> pd.Series:
     except Exception:
         return pd.Series()
 
-
 @st.cache_data(ttl=3600, show_spinner=False)
 def load_date_range():
     engine = get_engine()
@@ -295,11 +268,6 @@ def load_date_range():
         return pd.to_datetime(row["mn"]), pd.to_datetime(row["mx"])
     except Exception:
         return None, None
-
-
-# ─────────────────────────────────────────────
-# HELPER & FORMATTER
-# ─────────────────────────────────────────────
 
 PLOTLY_LAYOUT = dict(
     font_family="DM Sans",
@@ -327,14 +295,12 @@ COLOR_WARNING   = "#d97706"
 COLOR_DANGER    = "#dc2626"
 COLOR_NEUTRAL   = "#6b7280"
 
-
 def wind_dir_label(deg):
     """Konversi derajat ke label arah mata angin."""
-    dirs = ["U", "UTL", "TL", "TTL", "T", "TTG", "TG", "BTG",
-            "B", "BBD", "BD", "SBD", "S", "SBT", "BT", "UBT"]
+    dirs = ["U", "UTL", "TL", "TTL", "T", "TTG", "TG", "STG",
+            "S", "SBD", "BD", "BBD", "B", "BBL", "BL", "UBL"]
     ix = int((deg + 11.25) / 22.5) % 16
     return dirs[ix]
-
 
 def cuaca_label(ww):
     """Konversi kode WW ke label ringkas."""
@@ -351,7 +317,6 @@ def cuaca_label(ww):
     if ww <= 90:   return "Hujan Lebat"
     return "Badai Petir"
 
-
 def metric_html(label, value, unit="", delta=None, delta_label=""):
     delta_html = ""
     if delta is not None:
@@ -365,14 +330,8 @@ def metric_html(label, value, unit="", delta=None, delta_label=""):
         {delta_html}
     </div>"""
 
-
-# ─────────────────────────────────────────────
-# FUNGSI CHART
-# ─────────────────────────────────────────────
-
 def chart_timeseries_suhu(df_daily):
     fig = go.Figure()
-    # Range area Tmin–Tmax
     fig.add_trace(go.Scatter(
         x=pd.concat([df_daily["date"], df_daily["date"][::-1]]),
         y=pd.concat([df_daily["suhu_max_tercatat_c"], df_daily["suhu_min_tercatat_c"][::-1]]),
@@ -401,7 +360,6 @@ def chart_timeseries_suhu(df_daily):
     )
     return fig
 
-
 def chart_kelembaban(df_daily):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -415,7 +373,6 @@ def chart_kelembaban(df_daily):
         yaxis_title="RH (%)", yaxis_range=[40, 105], height=280,
     )
     return fig
-
 
 def chart_curah_hujan(df_daily):
     farbe = ["#bfdbfe" if r < 5 else "#60a5fa" if r < 20
@@ -435,7 +392,6 @@ def chart_curah_hujan(df_daily):
     )
     return fig
 
-
 def chart_curah_hujan_monthly(df_daily):
     df = df_daily.copy()
     df["bulan"] = df["date"].dt.to_period("M").astype(str)
@@ -451,19 +407,16 @@ def chart_curah_hujan_monthly(df_daily):
     )
     return fig
 
-
 def chart_wind_rose(df_hourly):
     """Wind rose chart menggunakan Plotly bar_polar."""
     df = df_hourly[df_hourly["wind_speed_ms"].notna() &
                    df_hourly["wind_dir_deg"].notna()].copy()
 
-    # Binning arah ke 16 sektor
     bins = np.arange(-11.25, 371.25, 22.5)
-    labels = ["U","UTL","TL","TTL","T","TTG","TG","BTG",
-              "B","BBD","BD","SBD","S","SBT","BT","UBT"]
+    labels = ["U","UTL","TL","TTL","T","TTG","TG","STG",
+              "S","SBD","BD","BBD","B","BBL","BL","UBL"]
     df["dir_bin"] = pd.cut(df["wind_dir_deg"] % 360, bins=bins, labels=labels)
 
-    # Binning kecepatan
     speed_bins   = [0, 2, 5, 10, 20, 999]
     speed_labels = ["0–2 m/s", "2–5 m/s", "5–10 m/s", "10–20 m/s", ">20 m/s"]
     speed_colors = ["#bfdbfe", "#60a5fa", "#2563eb", "#1d4ed8", "#1e3a8a"]
@@ -492,7 +445,6 @@ def chart_wind_rose(df_hourly):
     )
     return fig
 
-
 def chart_wind_speed(df_daily):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -512,7 +464,6 @@ def chart_wind_speed(df_daily):
     )
     return fig
 
-
 def chart_tekanan(df_daily):
     fig = go.Figure()
     fig.add_trace(go.Scatter(
@@ -531,7 +482,6 @@ def chart_tekanan(df_daily):
     )
     return fig
 
-
 def chart_penyinaran(df_daily):
     fig = go.Figure()
     fig.add_trace(go.Bar(
@@ -544,7 +494,6 @@ def chart_penyinaran(df_daily):
         yaxis_title="Jam", yaxis_range=[0, 13], height=260, bargap=0.1,
     )
     return fig
-
 
 def chart_cloud_visibility(df_daily):
     fig = make_subplots(specs=[[{"secondary_y": True}]])
@@ -559,7 +508,6 @@ def chart_cloud_visibility(df_daily):
         line=dict(color="#0ea5e9", width=2),
         name="Visibilitas (km)",
     ), secondary_y=True)
-    # Buat layout tanpa key 'legend' dari PLOTLY_LAYOUT agar tidak duplikat
     base = {k: v for k, v in PLOTLY_LAYOUT.items() if k != "legend"}
     fig.update_layout(
         **base,
@@ -570,7 +518,6 @@ def chart_cloud_visibility(df_daily):
     fig.update_yaxes(title_text="Oktas (0–9)", secondary_y=False, range=[0, 10])
     fig.update_yaxes(title_text="Visibilitas (km)", secondary_y=True)
     return fig
-
 
 def chart_monthly_klimat(df_daily):
     df = df_daily.copy()
@@ -614,7 +561,6 @@ def chart_monthly_klimat(df_daily):
         fig.update_yaxes(gridcolor="#f0f2f5")
     return fig
 
-
 def chart_hourly_heatmap(df_hourly, kolom="suhu_bola_kering_c", judul="Suhu (°C)"):
     df = df_hourly.copy()
     df["date"] = df["timestamp"].dt.date
@@ -637,11 +583,6 @@ def chart_hourly_heatmap(df_hourly, kolom="suhu_bola_kering_c", judul="Suhu (°C
     )
     return fig
 
-
-# ─────────────────────────────────────────────
-# SIDEBAR
-# ─────────────────────────────────────────────
-
 with st.sidebar:
     st.markdown("""
     <div style="text-align:center;padding:12px 0 16px">
@@ -659,49 +600,18 @@ with st.sidebar:
         date_min = datetime(2022, 1, 1)
         date_max = datetime.today()
 
-    # Inisialisasi session_state untuk menyimpan pilihan tanggal
-    if "tgl_mulai" not in st.session_state:
-        st.session_state.tgl_mulai = (date_max - timedelta(days=90)).date() \
-            if hasattr(date_max, "date") else date_max - timedelta(days=90)
-    if "tgl_akhir" not in st.session_state:
-        st.session_state.tgl_akhir = date_max.date() \
-            if hasattr(date_max, "date") else date_max
-
-    # Shortcut periode — harus SEBELUM date_input agar session_state terupdate dulu
-    st.markdown("<div style='font-size:11px;color:#9ca3af;margin-bottom:6px'>Shortcut</div>",
-                unsafe_allow_html=True)
-    c1, c2, c3 = st.columns(3)
-    if c1.button("30H",  use_container_width=True):
-        st.session_state.tgl_mulai = (date_max - timedelta(days=30)).date() \
-            if hasattr(date_max, "date") else date_max - timedelta(days=30)
-        st.session_state.tgl_akhir = date_max.date() \
-            if hasattr(date_max, "date") else date_max
-    if c2.button("90H",  use_container_width=True):
-        st.session_state.tgl_mulai = (date_max - timedelta(days=90)).date() \
-            if hasattr(date_max, "date") else date_max - timedelta(days=90)
-        st.session_state.tgl_akhir = date_max.date() \
-            if hasattr(date_max, "date") else date_max
-    if c3.button("Semua", use_container_width=True):
-        st.session_state.tgl_mulai = date_min.date() \
-            if hasattr(date_min, "date") else date_min
-        st.session_state.tgl_akhir = date_max.date() \
-            if hasattr(date_max, "date") else date_max
-
     col_a, col_b = st.columns(2)
     with col_a:
         tgl_mulai = st.date_input("Dari",
-                                   value=st.session_state.tgl_mulai,
-                                   min_value=date_min, max_value=date_max,
-                                   key="input_dari")
+                                   value=date_max - timedelta(days=90),
+                                   min_value=date_min, max_value=date_max)
     with col_b:
         tgl_akhir = st.date_input("Hingga",
-                                   value=st.session_state.tgl_akhir,
-                                   min_value=date_min, max_value=date_max,
-                                   key="input_hingga")
+                                   value=date_max,
+                                   min_value=date_min, max_value=date_max)
 
     st.divider()
 
-    # Status koneksi
     engine = get_engine()
     if engine:
         st.markdown('<span class="badge badge-green">● Database terhubung</span>',
@@ -721,11 +631,6 @@ with st.sidebar:
         st.cache_data.clear()
         st.rerun()
 
-
-# ─────────────────────────────────────────────
-# LOAD DATA
-# ─────────────────────────────────────────────
-
 date_from_str = str(tgl_mulai)
 date_to_str   = str(tgl_akhir)
 
@@ -736,11 +641,6 @@ with st.spinner("Memuat data..."):
 
 has_daily  = len(df_daily)  > 0
 has_hourly = len(df_hourly) > 0
-
-
-# ─────────────────────────────────────────────
-# HEADER
-# ─────────────────────────────────────────────
 
 ts_latest = latest.get("timestamp", "—") if not latest.empty else "—"
 ts_str    = pd.to_datetime(ts_latest).strftime("%d %b %Y, %H:%M UTC") if ts_latest != "—" else "—"
@@ -756,11 +656,6 @@ st.markdown(f"""
     </div>
 </div>
 """, unsafe_allow_html=True)
-
-
-# ─────────────────────────────────────────────
-# METRIC CARDS — KONDISI TERKINI
-# ─────────────────────────────────────────────
 
 if not latest.empty:
     st.markdown('<p class="section-title">Kondisi Terkini</p>'
@@ -784,11 +679,6 @@ if not latest.empty:
 
     st.markdown("<br>", unsafe_allow_html=True)
 
-
-# ─────────────────────────────────────────────
-# TABS UTAMA
-# ─────────────────────────────────────────────
-
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "🌡️  Suhu & Kelembaban",
     "🌧️  Curah Hujan",
@@ -798,13 +688,10 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
     "📊  Klimatologi",
 ])
 
-
-# ── TAB 1: SUHU & KELEMBABAN ──────────────────
 with tab1:
     if not has_daily:
         st.warning("Tidak ada data untuk periode yang dipilih.")
     else:
-        # KPI ringkasan periode
         c1, c2, c3, c4 = st.columns(4)
         c1.metric("Suhu Rata-rata",
                   f'{df_daily["suhu_rerata_c"].mean():.1f} °C')
@@ -840,8 +727,6 @@ with tab1:
                                                   judul_map[col_heat]),
                             use_container_width=True)
 
-
-# ── TAB 2: CURAH HUJAN ───────────────────────
 with tab2:
     if not has_daily:
         st.warning("Tidak ada data untuk periode yang dipilih.")
@@ -862,7 +747,6 @@ with tab2:
         st.plotly_chart(chart_curah_hujan_monthly(df_daily),
                         use_container_width=True)
 
-        # Tabel hari hujan terbesar
         st.markdown("---")
         st.markdown('<p class="section-title">10 Hari dengan Curah Hujan Tertinggi</p>',
                     unsafe_allow_html=True)
@@ -877,8 +761,6 @@ with tab2:
         top10["Tanggal"] = top10["Tanggal"].dt.strftime("%d %B %Y")
         st.dataframe(top10, hide_index=True, use_container_width=True)
 
-
-# ── TAB 3: ANGIN ─────────────────────────────
 with tab3:
     if not has_hourly or not has_daily:
         st.warning("Tidak ada data untuk periode yang dipilih.")
@@ -908,8 +790,6 @@ with tab3:
             st.plotly_chart(chart_wind_speed(df_daily),
                             use_container_width=True)
 
-
-# ── TAB 4: AWAN & VISIBILITAS ─────────────────
 with tab4:
     if not has_daily:
         st.warning("Tidak ada data untuk periode yang dipilih.")
@@ -930,8 +810,6 @@ with tab4:
         st.plotly_chart(chart_penyinaran(df_daily),
                         use_container_width=True)
 
-
-# ── TAB 5: TEKANAN ────────────────────────────
 with tab5:
     if not has_daily:
         st.warning("Tidak ada data untuk periode yang dipilih.")
@@ -956,8 +834,6 @@ with tab5:
                 df_hourly, "tekanan_qff_mb", "Tekanan QFF (mb)"
             ), use_container_width=True)
 
-
-# ── TAB 6: KLIMATOLOGI ────────────────────────
 with tab6:
     if not has_daily:
         st.warning("Tidak ada data untuk periode yang dipilih.")

@@ -39,11 +39,6 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
-
-# ─────────────────────────────────────────────
-# 1. KONFIGURASI
-# ─────────────────────────────────────────────
-
 RAW_FILE_PATH = os.getenv("RAW_FILE_PATH", "RAW_SYNOP_REPORT.csv")
 
 DB_HOST     = os.getenv("DB_HOST")
@@ -66,11 +61,6 @@ QC_BOUNDS = {
     "tutupan_awan_oktas"    : (0.0,    9.0),
 }
 
-
-# ─────────────────────────────────────────────
-# 2. KONEKSI DATABASE
-# ─────────────────────────────────────────────
-
 def get_engine():
     """
     Membuat SQLAlchemy engine untuk koneksi ke Supabase PostgreSQL.
@@ -88,11 +78,6 @@ def get_engine():
     engine = create_engine(url, pool_pre_ping=True)
     log.info("Koneksi ke database berhasil dibuat.")
     return engine
-
-
-# ─────────────────────────────────────────────
-# 3. FUNGSI CLEANING
-# ─────────────────────────────────────────────
 
 def decode_rainfall(row):
     """
@@ -117,7 +102,6 @@ def decode_rainfall(row):
         return val if pd.notna(val) else np.nan
     return np.nan
 
-
 def circular_interpolate(series):
     """
     Interpolasi sirkular untuk arah angin (Mardia & Jupp, 2000).
@@ -127,7 +111,6 @@ def circular_interpolate(series):
     sin_i = pd.Series(np.sin(rad)).interpolate(method="linear", limit_direction="both")
     cos_i = pd.Series(np.cos(rad)).interpolate(method="linear", limit_direction="both")
     return np.rad2deg(np.arctan2(sin_i, cos_i)) % 360
-
 
 def run_cleaning(raw_path: str):
     """
@@ -148,7 +131,6 @@ def run_cleaning(raw_path: str):
     df = pd.read_csv(raw_path, low_memory=False)
     log.info(f"Data dimuat: {df.shape[0]:,} baris × {df.shape[1]} kolom")
 
-    # ── Parse timestamp ──
     df["timestamp"] = pd.to_datetime(
         df["DATA TIMESTAMP"].str.replace(r"\s+\+.*", "", regex=True)
     )
@@ -159,16 +141,13 @@ def run_cleaning(raw_path: str):
     df["day"]   = df["timestamp"].dt.day
     df = df.sort_values("timestamp").reset_index(drop=True)
 
-    # ── Decode curah hujan ──
     df["rainfall_mm"] = df.apply(decode_rainfall, axis=1)
 
-    # ── Interpolasi angin (sirkular) ──
     df["wind_dir_deg"]  = circular_interpolate(df["WIND DIR DEG DD"])
     df["wind_speed_ms"] = df["WIND SPEED FF"].interpolate(
         method="linear", limit_direction="both"
     )
 
-    # ── Interpolasi linear — missing < 2% ──
     df["visibility_km"] = df["VISIBILITY VV"].interpolate(
         method="linear", limit_direction="both"
     )
@@ -176,7 +155,6 @@ def run_cleaning(raw_path: str):
         method="linear", limit_direction="both"
     )
 
-    # ── Rename kolom ──
     rename_map = {
         "TEMP DRYBULB C TTTTTT"      : "suhu_bola_kering_c",
         "TEMP DEWPOINT C TDTDTD"     : "suhu_titik_embun_c",
@@ -196,7 +174,6 @@ def run_cleaning(raw_path: str):
     }
     df = df.rename(columns=rename_map)
 
-    # ── Pilih kolom final (per jam) ──
     HOURLY_COLS = [
         "timestamp", "year", "month", "day", "hour",
         "suhu_bola_kering_c", "suhu_titik_embun_c", "suhu_bola_basah_c",
@@ -211,7 +188,6 @@ def run_cleaning(raw_path: str):
     ]
     df_hourly = df[HOURLY_COLS].copy()
 
-    # ── Quality Control ──
     df_hourly["qc_flag"] = "OK"
     n_suspect = 0
     for col, (lo, hi) in QC_BOUNDS.items():
@@ -224,7 +200,6 @@ def run_cleaning(raw_path: str):
             n_suspect += mask.sum()
     log.info(f"QC selesai — {n_suspect} nilai di luar batas → NaN + flag SUSPECT")
 
-    # ── Bangun tabel harian ──
     daily_agg = df_hourly.groupby(
         df_hourly["timestamp"].dt.date
     ).agg(
@@ -281,11 +256,6 @@ def run_cleaning(raw_path: str):
     )
     return df_hourly, df_daily
 
-
-# ─────────────────────────────────────────────
-# 4. FUNGSI UPLOAD KE DATABASE
-# ─────────────────────────────────────────────
-
 def upload_to_db(df_hourly: pd.DataFrame, df_daily: pd.DataFrame, engine):
     """
     Mengupload kedua DataFrame ke tabel PostgreSQL di Supabase.
@@ -298,9 +268,6 @@ def upload_to_db(df_hourly: pd.DataFrame, df_daily: pd.DataFrame, engine):
     mengganti seluruh tabel. Ganti ke mode incremental setelah tabel
     stabil (lihat komentar di bawah).
     """
-
-    # ── Mode: replace (untuk pertama kali / full refresh) ──
-    # Ganti ke mode incremental setelah struktur tabel stabil.
 
     log.info("Mengupload tabel hourly ke Supabase...")
     df_hourly.to_sql(
@@ -324,7 +291,6 @@ def upload_to_db(df_hourly: pd.DataFrame, df_daily: pd.DataFrame, engine):
     )
     log.info(f"  → clean_daily: {len(df_daily):,} baris berhasil diupload")
 
-
 def upload_incremental(df_hourly: pd.DataFrame, df_daily: pd.DataFrame, engine):
     """
     Mode upload incremental — hanya menambah data baru yang belum ada di DB.
@@ -337,7 +303,6 @@ def upload_incremental(df_hourly: pd.DataFrame, df_daily: pd.DataFrame, engine):
     3. Append ke tabel yang sudah ada
     """
     with engine.connect() as conn:
-        # Cek data terbaru di tabel hourly
         result = conn.execute(text("SELECT MAX(timestamp) FROM clean_hourly"))
         last_hourly = result.scalar()
 
@@ -369,11 +334,6 @@ def upload_incremental(df_hourly: pd.DataFrame, df_daily: pd.DataFrame, engine):
             index=False, chunksize=500, method="multi"
         )
 
-
-# ─────────────────────────────────────────────
-# 5. MAIN
-# ─────────────────────────────────────────────
-
 def main():
     log.info("=" * 55)
     log.info("BMKG Fatmawati — Pipeline dimulai")
@@ -381,13 +341,11 @@ def main():
     log.info("=" * 55)
 
     try:
-        # Cleaning
         df_hourly, df_daily = run_cleaning(RAW_FILE_PATH)
 
-        # Koneksi DB
         engine = get_engine()
 
-        upload_incremental(df_hourly, df_daily, engine)
+        upload_to_db(df_hourly, df_daily, engine)
 
         log.info("=" * 55)
         log.info("Pipeline selesai — semua data berhasil diupload.")
@@ -402,7 +360,6 @@ def main():
     except Exception as e:
         log.error(f"Pipeline gagal: {e}")
         raise
-
 
 if __name__ == "__main__":
     main()

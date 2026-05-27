@@ -788,8 +788,7 @@ with st.sidebar:
 
     st.markdown(f"""
     <div style="font-size:11px;color:#9ca3af;margin-top:12px">
-        Data di-refresh otomatis setiap 1 jam.<br>
-        Update terakhir pipeline: <b>00:00 WIB</b>
+        Data di-refresh otomatis setiap pukul 00.00.<br>
     </div>
     """, unsafe_allow_html=True)
 

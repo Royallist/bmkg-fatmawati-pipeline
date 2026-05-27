@@ -15,39 +15,41 @@
 
 ---
 
-## Tentang Proyek
+## Ringkasan Proyek
 
-Proyek ini membangun sistem pemantauan dan analisis cuaca berbasis web untuk Stasiun Meteorologi Kelas I Fatmawati Bengkulu (WMO ID: 96253). Sistem bekerja secara penuh otomatis: data pengamatan sinoptik (*SYNOP*) yang dientri oleh observer diproses setiap tengah malam, disimpan ke basis data cloud, dan ditampilkan secara langsung melalui dashboard interaktif yang dapat diakses dari peramban tanpa instalasi perangkat lunak apapun.
+Repositori ini berisi *end-to-end data pipeline* dan *dashboard* analitik untuk mengotomatisasi pengolahan data observasi cuaca sinoptik (SYNOP) di BMKG Stasiun Meteorologi Kelas I Fatmawati Bengkulu (WMO ID: 96253). 
 
-Seluruh pipeline mengacu pada standar internasional **WMO-No. 306 Manual on Codes** (WMO, 2019) dan **WMO-No. 8 Guide to Meteorological Instruments and Methods of Observation** (WMO, 2018), memastikan bahwa setiap tahap pengolahan data dapat dipertanggungjawabkan secara ilmiah.
+Proyek ini dirancang untuk menggantikan proses rekapitulasi data manual, memastikan kualitas data (*Quality Control*) secara sistematis, dan mendemokratisasi akses data cuaca historis (observasi per jam) melalui antarmuka web interaktif. Seluruh logika pemrosesan data, termasuk penanganan anomali, mengacu pada standar instrumen dan observasi WMO (World Meteorological Organization).
+
+---
+
+## Technical Highlights & Metodologi
+
+Pemrosesan data mentah observasi menjadi data siap analisis (*clean data*) melibatkan beberapa penanganan metrik cuaca yang kompleks:
+
+* **Circular Interpolation untuk Arah Angin:** Menghindari bias matematis pada data sirkular (0°-360°) menggunakan metode Mardia & Jupp (2000) saat melakukan imputasi *missing values* pada data arah angin.
+* **WMO Rainfall Decoding:** Mendekode indikator curah hujan berdasarkan *Manual on Codes* WMO-No. 306 (menerjemahkan IR indicator dan *omitted codes* seperti `8888` menjadi data numerik valid atau *NaN*).
+* **Automated Quality Control (QC):** Mengimplementasikan *Gross Error Check* (Zahumenský, 2004) dengan batasan threshold logis untuk 11 variabel meteorologi. Nilai di luar kewajaran secara otomatis di-flag sebagai `SUSPECT` dan dipisahkan dari perhitungan *daily aggregation*.
+* **Pipeline Automation:** Skrip ETL (`pipeline_db.py`) diorkestrasi menggunakan GitHub Actions untuk berjalan setiap pukul 00:00 WIB, memproses data harian terbaru, dan melakukan upsert ke database PostgreSQL.
 
 ---
 
 ## Arsitektur Sistem
 
 ```
-RAW_SYNOP_REPORT.csv
-        │
-        ├─ BMKG_Fatmawati_Cleaning.ipynb   (eksplorasi & dokumentasi)
-        │
-        ├─ pipeline_db.py                  (dijalankan otomatis 00:00 WIB)
-        │     ├─ Parsing timestamp UTC
-        │     ├─ Dekode curah hujan (IR indicator + kode 8888)
-        │     ├─ Interpolasi sirkular arah angin (Mardia & Jupp, 2000)
-        │     ├─ Quality control — gross error check (Zahumenský, 2004)
-        │     └─ Upload ke Supabase PostgreSQL
-        │
-        ├─ Supabase PostgreSQL
-        │     ├─ Tabel: clean_hourly  (~22.000 baris)
-        │     └─ Tabel: clean_daily   (~923 baris)
-        │
-        └─ dashboard.py                    (Streamlit — akses publik)
-              ├─ Monitoring kondisi terkini
-              ├─ Analisis time-series suhu, kelembaban, tekanan
-              ├─ Curah hujan harian & bulanan
-              ├─ Wind rose 16 sektor
-              ├─ Tutupan awan & visibilitas
-              └─ Klimatologi bulanan
+[Data Source] RAW_SYNOP_REPORT.csv 
+      │
+      ├─► [ETL Script] pipeline_db.py (GitHub Actions - Cron 00:00)
+      │      ├─ Data Parsing & Imputation
+      │      ├─ Rainfall Decoding & Circular Interpolation
+      │      └─ Gross Error Check (QC)
+      │
+      ├─► [Data Warehouse] Supabase PostgreSQL
+      │      ├─ clean_hourly  (observasi per jam)
+      │      └─ clean_daily   (Agregasi harian)
+      │
+      └─► [Frontend] dashboard.py (Streamlit)
+             └─ Visualisasi data historis, klimatologi bulanan, & wind rose
 ```
 
 ---
@@ -73,9 +75,9 @@ Dashboard dapat diakses langsung melalui tautan berikut tanpa memerlukan akun at
 
 ### Memilih Periode Analisis
 
-Di panel sebelah kiri (*sidebar*), terdapat dua kolom tanggal — **Dari** dan **Hingga** — yang dapat diatur secara bebas sesuai kebutuhan analisis. Klik pada kolom tanggal untuk menampilkan kalender, pilih tanggal yang diinginkan, lalu dashboard akan memperbarui seluruh grafik secara otomatis.
+Di panel sebelah kiri (*sidebar*), terdapat dua kolom tanggal **Dari** dan **Hingga** yang dapat diatur secara bebas sesuai kebutuhan analisis. Klik pada kolom tanggal untuk menampilkan kalender, pilih tanggal yang diinginkan, lalu dashboard akan memperbarui seluruh grafik secara otomatis.
 
-Cakupan data yang tersedia: **Januari 2022 – Juli 2024** (923 hari pengamatan, resolusi per jam).
+Cakupan data yang tersedia: **Januari 2022 – Juli 2024** (923 hari pengamatan, observasi per jam).
 
 ### Navigasi Antar Tab
 
@@ -85,11 +87,11 @@ Gunakan tab di bagian atas konten utama untuk berpindah antar topik analisis. Se
 
 Seluruh grafik bersifat interaktif:
 
-- **Zoom** — klik dan seret pada area grafik untuk memperbesar rentang waktu tertentu
-- **Pan** — tahan *shift* lalu seret untuk menggeser tampilan
-- **Tooltip** — arahkan kursor ke titik data untuk melihat nilai tepat pada tanggal dan jam tersebut
-- **Sembunyikan/tampilkan seri** — klik nama variabel pada legenda grafik
-- **Unduh gambar** — klik ikon kamera di pojok kanan atas grafik
+- **Zoom**: klik dan seret pada area grafik untuk memperbesar rentang waktu tertentu
+- **Pan**: tahan *shift* lalu seret untuk menggeser tampilan
+- **Tooltip**: arahkan kursor ke titik data untuk melihat nilai tepat pada tanggal dan jam tersebut
+- **Sembunyikan/tampilkan seri**: klik nama variabel pada legenda grafik
+- **Unduh gambar**: klik ikon kamera di pojok kanan atas grafik
 
 ### Pembaruan Data
 
@@ -147,5 +149,5 @@ Zahumenský, I. (2004). *Guidelines on quality control procedures for data from 
 ---
 
 <div align="center">
-<sub>Data: BMKG Stasiun Meteorologi Kelas I Fatmawati Bengkulu &nbsp;·&nbsp; Periode: Januari 2022 – Juli 2024 &nbsp;·&nbsp; Resolusi: Per Jam</sub>
+<sub>Data: BMKG Stasiun Meteorologi Kelas I Fatmawati Bengkulu &nbsp;·&nbsp; Periode: Januari 2022 – Juli 2024 &nbsp;·&nbsp; observasi: Per Jam</sub>
 </div>

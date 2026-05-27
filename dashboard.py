@@ -32,130 +32,170 @@ st.markdown("""
 <style>
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap');
 
-html, body, [class*="css"] {
-    font-family: 'DM Sans', sans-serif;
+html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
+
+/* ── Weather background animations ── */
+.weather-bg {
+    position: fixed; top: 0; left: 0; width: 100vw; height: 100vh;
+    z-index: 0; pointer-events: none; overflow: hidden;
+}
+.rain-drop {
+    position: absolute; width: 2px; border-radius: 2px;
+    background: linear-gradient(transparent, rgba(130,180,255,0.7));
+    animation: fall linear infinite;
+}
+@keyframes fall {
+    0%   { transform: translateY(-120px); opacity: 0; }
+    10%  { opacity: 1; }
+    90%  { opacity: 1; }
+    100% { transform: translateY(110vh); opacity: 0; }
+}
+.cloud-puff {
+    position: absolute; border-radius: 50%;
+    background: rgba(180,200,220,0.18);
+    animation: drift linear infinite;
+}
+@keyframes drift {
+    0%   { transform: translateX(-200px); }
+    100% { transform: translateX(110vw); }
+}
+.fog-layer {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: repeating-linear-gradient(
+        0deg, rgba(200,215,230,0.07) 0px, rgba(200,215,230,0.12) 60px,
+        rgba(200,215,230,0.04) 120px);
+    animation: fogdrift 18s ease-in-out infinite alternate;
+    pointer-events: none; z-index: 0;
+}
+@keyframes fogdrift {
+    0%   { background-position: 0 0; opacity: 0.6; }
+    100% { background-position: 0 40px; opacity: 1; }
+}
+@keyframes lightning {
+    0%, 92%, 94%, 96%, 100% { opacity: 0; }
+    93%, 95% { opacity: 1; }
 }
 
-/* Header utama */
+/* ── Glassmorphism panels ── */
+.glass-panel {
+    background: rgba(255,255,255,0.72);
+    backdrop-filter: blur(14px) saturate(160%);
+    -webkit-backdrop-filter: blur(14px) saturate(160%);
+    border: 1px solid rgba(255,255,255,0.55);
+    border-radius: 16px;
+    box-shadow: 0 4px 24px rgba(26,107,154,0.08), 0 1px 4px rgba(0,0,0,0.04);
+    padding: 20px 24px;
+    margin-bottom: 18px;
+}
+.glass-section {
+    background: rgba(255,255,255,0.6);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    border: 1px solid rgba(255,255,255,0.5);
+    border-radius: 12px;
+    padding: 14px 18px;
+    margin-bottom: 14px;
+}
+
+/* ── Header ── */
 .main-header {
-    background: linear-gradient(135deg,
+    background: linear-gradient(135deg, rgba(26,107,154,0.92) 0%, rgba(13,79,117,0.95) 100%);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
     color: white;
     padding: 24px 32px;
-    border-radius: 12px;
-    margin-bottom: 24px;
+    border-radius: 16px;
+    margin-bottom: 20px;
+    border: 1px solid rgba(255,255,255,0.15);
+    box-shadow: 0 8px 32px rgba(26,107,154,0.25);
+    position: relative; overflow: hidden;
 }
-.main-header h1 {
-    margin: 0 0 4px;
-    font-size: 22px;
-    font-weight: 600;
-    letter-spacing: -0.3px;
+.main-header::before {
+    content: ''; position: absolute;
+    top: -40%; left: -10%; width: 60%; height: 200%;
+    background: radial-gradient(ellipse, rgba(255,255,255,0.06) 0%, transparent 70%);
+    pointer-events: none;
 }
-.main-header p {
-    margin: 0;
-    font-size: 13px;
-    opacity: 0.75;
-    font-weight: 300;
-}
-.header-meta {
-    display: flex;
-    gap: 24px;
-    margin-top: 14px;
-}
-.header-meta span {
-    font-size: 12px;
-    opacity: 0.65;
-    font-family: 'DM Mono', monospace;
-}
+.main-header h1 { margin: 0 0 4px; font-size: 22px; font-weight: 600; letter-spacing: -0.3px; }
+.main-header p  { margin: 0; font-size: 13px; opacity: 0.75; font-weight: 300; }
+.header-meta    { display: flex; gap: 24px; margin-top: 14px; }
+.header-meta span { font-size: 12px; opacity: 0.65; font-family: 'DM Mono', monospace; }
 
-/* Metric cards */
+/* ── Metric cards ── */
+.metrics-wrapper {
+    background: rgba(240,246,252,0.5);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(26,107,154,0.12);
+    border-radius: 14px;
+    padding: 18px 20px 14px;
+    margin-bottom: 20px;
+}
+.metrics-label {
+    font-size: 11px; font-weight: 600; color: #1a6b9a;
+    text-transform: uppercase; letter-spacing: .08em;
+    margin-bottom: 14px;
+}
+.metrics-divider {
+    height: 1px; background: rgba(26,107,154,0.1); margin: 10px 0 14px;
+}
 .metric-card {
-    background: white;
-    border: 1px solid
-    border-radius: 10px;
-    padding: 16px 20px;
-    text-align: center;
-    box-shadow: 0 1px 3px rgba(0,0,0,.04);
+    background: rgba(255,255,255,0.8);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+    border: 1px solid rgba(255,255,255,0.7);
+    border-radius: 12px; padding: 14px 16px; text-align: center;
+    box-shadow: 0 2px 8px rgba(26,107,154,0.07);
+    transition: transform .15s, box-shadow .15s;
 }
-.metric-label {
-    font-size: 11px;
-    color:
-    font-weight: 500;
-    text-transform: uppercase;
-    letter-spacing: .06em;
-    margin-bottom: 6px;
+.metric-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(26,107,154,0.12);
 }
-.metric-value {
-    font-size: 28px;
-    font-weight: 600;
-    color:
-    line-height: 1;
-    font-family: 'DM Mono', monospace;
-}
-.metric-unit {
-    font-size: 13px;
-    color:
-    margin-left: 3px;
-    font-weight: 400;
-}
-.metric-delta {
-    font-size: 11px;
-    margin-top: 4px;
-}
-.metric-delta.up   { color:
-.metric-delta.down { color:
-.metric-delta.same { color:
+.metric-label   { font-size: 10px; color: #6b7280; font-weight: 600;
+                  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+.metric-value   { font-size: 26px; font-weight: 600; color: #1a1f2e;
+                  line-height: 1; font-family: 'DM Mono', monospace; }
+.metric-unit    { font-size: 12px; color: #9ca3af; margin-left: 3px; font-weight: 400; }
+.metric-delta   { font-size: 11px; margin-top: 4px; }
+.metric-delta.up   { color: #ef4444; }
+.metric-delta.down { color: #3b82f6; }
+.metric-delta.same { color: #9ca3af; }
 
-/* Section headers */
-.section-title {
-    font-size: 14px;
-    font-weight: 600;
-    color:
-    margin: 0 0 2px;
-    letter-spacing: -0.1px;
-}
-.section-sub {
-    font-size: 12px;
-    color:
-    margin: 0 0 14px;
-}
+/* ── Section headers ── */
+.section-title { font-size: 14px; font-weight: 600; color: #374151;
+                 margin: 0 0 2px; letter-spacing: -0.1px; }
+.section-sub   { font-size: 12px; color: #9ca3af; margin: 0 0 14px; }
 
-/* Status badge */
-.badge {
-    display: inline-block;
-    padding: 2px 10px;
-    border-radius: 20px;
-    font-size: 11px;
-    font-weight: 500;
-}
+/* ── Status badge ── */
+.badge { display:inline-block; padding:2px 10px; border-radius:20px;
+         font-size:11px; font-weight:500; }
 .badge-green  { background:#dcfce7; color:#166534; }
 .badge-yellow { background:#fef9c3; color:#854d0e; }
 .badge-red    { background:#fee2e2; color:#991b1b; }
 .badge-blue   { background:#dbeafe; color:#1e40af; }
 
-/* Tabs custom */
+/* ── Tabs ── */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 4px;
-    background:
-    padding: 4px;
-    border-radius: 10px;
+    gap: 4px; background: rgba(245,247,250,0.8);
+    backdrop-filter: blur(6px); padding: 4px; border-radius: 10px;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 7px;
-    padding: 6px 16px;
-    font-size: 13px;
-    font-weight: 500;
+    border-radius: 7px; padding: 6px 16px; font-size: 13px; font-weight: 500;
 }
 
-/* Sidebar */
+/* ── Sidebar ── */
 section[data-testid="stSidebar"] {
-    background:
-    border-right: 1px solid
+    background: rgba(249,250,251,0.9);
+    backdrop-filter: blur(8px);
+    border-right: 1px solid rgba(232,236,240,0.8);
 }
 
-/* Hide Streamlit default branding */
+[data-testid="stToolbar"], footer, header { visibility: hidden; }
 .block-container { padding-top: 1rem; padding-bottom: 2rem; }
 </style>
 """, unsafe_allow_html=True)
+
 
 @st.cache_resource
 def get_engine():
@@ -317,12 +357,75 @@ def cuaca_label(ww):
     if ww <= 90:   return "Hujan Lebat"
     return "Badai Petir"
 
+
+def get_weather_category(ww) -> str:
+    """Kelompokkan kode WW menjadi kategori animasi."""
+    if pd.isna(ww):
+        return "clear"
+    ww = int(ww)
+    if ww in range(95, 100):  return "storm"
+    if ww in range(80, 95):   return "heavy_rain"
+    if ww in range(50, 80):   return "rain"
+    if ww in range(40, 50):   return "fog"
+    if ww in range(1, 10):    return "cloudy"
+    return "clear"
+
+
+def weather_bg_html(ww) -> str:
+    """
+    Render CSS-animated background sesuai kondisi cuaca.
+    Tidak menggunakan gambar atau GIF — murni CSS + HTML divs.
+    """
+    cat = get_weather_category(ww)
+
+    if cat in ("rain", "heavy_rain", "storm"):
+        n_drops = 60 if cat == "heavy_rain" else (90 if cat == "storm" else 35)
+        drops   = ""
+        for i in range(n_drops):
+            left   = (i * 17 + i * i * 3) % 100
+            delay  = round((i * 0.23) % 4, 2)
+            dur    = round(0.55 + (i % 7) * 0.12, 2)
+            height = 14 + (i % 5) * 6
+            opacity= 0.45 + (i % 3) * 0.15
+            drops += (f'<div class="rain-drop" style="left:{left}%;'
+                      f'animation-delay:{delay}s;animation-duration:{dur}s;'
+                      f'height:{height}px;opacity:{opacity}"></div>')
+        overlay_color = ("rgba(20,30,60,0.18)" if cat == "storm"
+                         else "rgba(30,60,120,0.10)")
+        lightning = ('<div style="position:fixed;top:0;left:0;width:100%;height:100%;'
+                     'background:rgba(220,240,255,0.9);pointer-events:none;z-index:0;'
+                     'animation:lightning 6s ease-in-out infinite;"></div>'
+                     if cat == "storm" else "")
+        return (f'<div class="weather-bg" style="background:{overlay_color};">'
+                f'{drops}{lightning}</div>')
+
+    if cat == "fog":
+        return ('<div class="fog-layer"></div>'
+                '<div class="fog-layer" style="animation-delay:-9s;opacity:0.5;'
+                'background:repeating-linear-gradient(0deg,rgba(210,225,235,0.09) 0px,'
+                'rgba(210,225,235,0.13) 80px,rgba(210,225,235,0.05) 160px);"></div>')
+
+    if cat == "cloudy":
+        puffs = ""
+        params = [(5,18,280,12,22), (20,30,380,8,18), (55,10,260,14,20),
+                  (70,22,320,10,16), (40,35,420,9,15), (85,15,290,11,19)]
+        for left, top, dur, w, h in params:
+            delay = round((left * 0.15) % 6, 1)
+            puffs += (f'<div class="cloud-puff" style="left:{left}%;top:{top}%;'
+                      f'width:{w}vw;height:{h}vh;animation-duration:{dur}s;'
+                      f'animation-delay:{delay}s;"></div>')
+        return f'<div class="weather-bg">{puffs}</div>'
+
+    return ""
+
+
 def metric_html(label, value, unit="", delta=None, delta_label=""):
     delta_html = ""
     if delta is not None:
-        cls = "up" if delta > 0 else ("down" if delta < 0 else "same")
+        cls   = "up" if delta > 0 else ("down" if delta < 0 else "same")
         arrow = "▲" if delta > 0 else ("▼" if delta < 0 else "—")
-        delta_html = f'<div class="metric-delta {cls}">{arrow} {abs(delta):.1f} {delta_label}</div>'
+        delta_html = (f'<div class="metric-delta {cls}">'
+                      f'{arrow} {abs(delta):.1f} {delta_label}</div>')
     return f"""
     <div class="metric-card">
         <div class="metric-label">{label}</div>
@@ -524,41 +627,92 @@ def chart_monthly_klimat(df_daily):
     df["bulan"] = df["date"].dt.month
     BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
     monthly = df.groupby("bulan").agg(
-        suhu_rerata=("suhu_rerata_c", "mean"),
-        hujan_total=("curah_hujan_24h_mm", "mean"),
-        rh_rerata=("kelembaban_rerata_pct", "mean"),
-        sunshine=("lama_penyinaran_jam", "mean"),
+        suhu_rerata=("suhu_rerata_c",         "mean"),
+        suhu_max   =("suhu_max_tercatat_c",   "mean"),
+        suhu_min   =("suhu_min_tercatat_c",   "mean"),
+        hujan_total=("curah_hujan_24h_mm",    "mean"),
+        rh_rerata  =("kelembaban_rerata_pct", "mean"),
+        sunshine   =("lama_penyinaran_jam",   "mean"),
     ).reset_index()
     monthly["bulan_str"] = monthly["bulan"].apply(lambda x: BULAN[x-1])
 
     fig = make_subplots(
         rows=2, cols=2,
         subplot_titles=[
-            "Suhu Rata-rata (°C)", "Rerata Curah Hujan Harian (mm)",
-            "Kelembaban Relatif (%)", "Lama Penyinaran (jam)"
+            "Suhu Udara (°C) — Rata-rata, Max & Min",
+            "Rerata Curah Hujan Harian (mm)",
+            "Kelembaban Relatif (%)",
+            "Lama Penyinaran Matahari (jam)",
         ],
-        vertical_spacing=0.18, horizontal_spacing=0.12,
+        vertical_spacing=0.22, horizontal_spacing=0.12,
     )
-    clr = [COLOR_PRIMARY, "#2563eb", "#0ea5e9", "#fbbf24"]
-    data_cols = ["suhu_rerata", "hujan_total", "rh_rerata", "sunshine"]
-    positions = [(1,1), (1,2), (2,1), (2,2)]
 
-    for (r, c), col, color in zip(positions, data_cols, clr):
-        fig.add_trace(go.Bar(
-            x=monthly["bulan_str"], y=monthly[col].round(1),
-            marker_color=color, showlegend=False,
-            hovertemplate="%{x}: %{y}<extra></extra>",
-        ), row=r, col=c)
+    t_min_val = monthly["suhu_min"].min()
+    t_max_val = monthly["suhu_max"].max()
+    t_pad     = max((t_max_val - t_min_val) * 0.3, 0.5)
+
+    fig.add_trace(go.Scatter(
+        x=pd.concat([monthly["bulan_str"], monthly["bulan_str"][::-1]]),
+        y=pd.concat([monthly["suhu_max"], monthly["suhu_min"][::-1]]),
+        fill="toself", fillcolor="rgba(26,107,154,0.10)",
+        line=dict(color="rgba(0,0,0,0)"),
+        name="Rentang Max-Min", showlegend=False, hoverinfo="skip",
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=monthly["bulan_str"], y=monthly["suhu_max"].round(2),
+        line=dict(color="#ef4444", width=1.5, dash="dot"),
+        mode="lines+markers", marker_size=5,
+        name="Max", showlegend=False,
+        hovertemplate="%{x}<br>Max: %{y:.2f}°C<extra></extra>",
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=monthly["bulan_str"], y=monthly["suhu_min"].round(2),
+        line=dict(color="#3b82f6", width=1.5, dash="dot"),
+        mode="lines+markers", marker_size=5,
+        name="Min", showlegend=False,
+        hovertemplate="%{x}<br>Min: %{y:.2f}°C<extra></extra>",
+    ), row=1, col=1)
+    fig.add_trace(go.Scatter(
+        x=monthly["bulan_str"], y=monthly["suhu_rerata"].round(2),
+        line=dict(color=COLOR_PRIMARY, width=2.5),
+        mode="lines+markers", marker_size=7,
+        showlegend=False,
+        hovertemplate="%{x}<br>Rata-rata: %{y:.2f}°C<extra></extra>",
+    ), row=1, col=1)
+
+    fig.add_trace(go.Bar(
+        x=monthly["bulan_str"], y=monthly["hujan_total"].round(1),
+        marker_color="#2563eb", showlegend=False,
+        hovertemplate="%{x}: %{y:.1f} mm<extra></extra>",
+    ), row=1, col=2)
+
+    rh_min = monthly["rh_rerata"].min()
+    rh_max = monthly["rh_rerata"].max()
+    rh_pad = max((rh_max - rh_min) * 0.4, 1.0)
+    fig.add_trace(go.Scatter(
+        x=monthly["bulan_str"], y=monthly["rh_rerata"].round(2),
+        line=dict(color="#0ea5e9", width=2.5),
+        fill="tozeroy", fillcolor="rgba(14,165,233,0.08)",
+        mode="lines+markers", marker_size=6, showlegend=False,
+        hovertemplate="%{x}: %{y:.2f}%<extra></extra>",
+    ), row=2, col=1)
+
+    fig.add_trace(go.Bar(
+        x=monthly["bulan_str"], y=monthly["sunshine"].round(1),
+        marker_color="#fbbf24", showlegend=False,
+        hovertemplate="%{x}: %{y:.1f} jam<extra></extra>",
+    ), row=2, col=2)
 
     fig.update_layout(
         paper_bgcolor="white", plot_bgcolor="white",
-        font_family="DM Sans", height=500,
+        font_family="DM Sans", height=580,
         title_text="Klimatologi Bulanan — Rata-rata Seluruh Periode Data",
-        margin=dict(l=20, r=20, t=60, b=20),
+        margin=dict(l=20, r=20, t=70, b=20),
     )
-    for i in range(1, 5):
-        fig.update_xaxes(showgrid=False)
-        fig.update_yaxes(gridcolor="#f0f2f5")
+    fig.update_xaxes(showgrid=False)
+    fig.update_yaxes(gridcolor="#f0f2f5")
+    fig.update_yaxes(range=[t_min_val - t_pad, t_max_val + t_pad], row=1, col=1)
+    fig.update_yaxes(range=[rh_min - rh_pad, rh_max + rh_pad], row=2, col=1)
     return fig
 
 def chart_hourly_heatmap(df_hourly, kolom="suhu_bola_kering_c", judul="Suhu (°C)"):
@@ -586,7 +740,19 @@ def chart_hourly_heatmap(df_hourly, kolom="suhu_bola_kering_c", judul="Suhu (°C
 with st.sidebar:
     st.markdown("""
     <div style="text-align:center;padding:12px 0 16px">
-        <div style="font-size:28px">🌤️</div>
+        <svg width="42" height="42" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:6px">
+          <circle cx="18" cy="18" r="17" fill="#e0f0fa" stroke="#1a6b9a" stroke-width="1.2"/>
+          <circle cx="18" cy="18" r="10" fill="none" stroke="#1a6b9a" stroke-width="1.5"/>
+          <circle cx="18" cy="18" r="3.5" fill="#1a6b9a"/>
+          <line x1="18" y1="3" x2="18" y2="8"   stroke="#1a6b9a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="18" y1="28" x2="18" y2="33" stroke="#1a6b9a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="3"  y1="18" x2="8"  y2="18" stroke="#1a6b9a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="28" y1="18" x2="33" y2="18" stroke="#1a6b9a" stroke-width="1.5" stroke-linecap="round"/>
+          <line x1="7.5"  y1="7.5"  x2="11"   y2="11"   stroke="#1a6b9a" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="25"   y1="25"   x2="28.5" y2="28.5" stroke="#1a6b9a" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="28.5" y1="7.5"  x2="25"   y2="11"   stroke="#1a6b9a" stroke-width="1.2" stroke-linecap="round"/>
+          <line x1="11"   y1="25"   x2="7.5"  y2="28.5" stroke="#1a6b9a" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
         <div style="font-size:13px;font-weight:600;color:#1a1f2e">BMKG Fatmawati</div>
         <div style="font-size:11px;color:#9ca3af;margin-top:2px">WMO ID: 96253 · Bengkulu</div>
     </div>
@@ -645,10 +811,33 @@ has_hourly = len(df_hourly) > 0
 ts_latest = latest.get("timestamp", "—") if not latest.empty else "—"
 ts_str    = pd.to_datetime(ts_latest).strftime("%d %b %Y, %H:%M UTC") if ts_latest != "—" else "—"
 
+ww_val = latest.get("cuaca_sekarang_ww") if not latest.empty else None
+st.markdown(weather_bg_html(ww_val), unsafe_allow_html=True)
+
+BMKG_LOGO = """
+<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <circle cx="18" cy="18" r="17" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
+  <circle cx="18" cy="18" r="10" fill="none" stroke="white" stroke-width="1.5"/>
+  <circle cx="18" cy="18" r="3.5" fill="white"/>
+  <line x1="18" y1="3" x2="18" y2="8"   stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="18" y1="28" x2="18" y2="33" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="3"  y1="18" x2="8"  y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="28" y1="18" x2="33" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="7.5"  y1="7.5"  x2="11" y2="11"  stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="25"   y1="25"   x2="28.5" y2="28.5" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="28.5" y1="7.5"  x2="25" y2="11"  stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+  <line x1="11"   y1="25"   x2="7.5" y2="28.5" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
+</svg>"""
+
 st.markdown(f"""
 <div class="main-header">
-    <h1>Dashboard Pemantauan Cuaca</h1>
-    <p>Stasiun Meteorologi Kelas I Fatmawati Bengkulu · Analisis Data Sinoptik</p>
+    <div style="display:flex;align-items:center;gap:14px;margin-bottom:12px;">
+        {BMKG_LOGO}
+        <div>
+            <h1>Dashboard Pemantauan Cuaca</h1>
+            <p>Stasiun Meteorologi Kelas I Fatmawati Bengkulu · Analisis Data Sinoptik</p>
+        </div>
+    </div>
     <div class="header-meta">
         <span>📅 {date_from_str} – {date_to_str}</span>
         <span>🕐 Observasi terakhir: {ts_str}</span>
@@ -658,25 +847,27 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 if not latest.empty:
-    st.markdown('<p class="section-title">Kondisi Terkini</p>'
-                '<p class="section-sub">Observasi per jam terakhir yang tersimpan di database</p>',
-                unsafe_allow_html=True)
+    ww_label = cuaca_label(ww_val)
+    st.markdown(f"""
+    <div class="metrics-wrapper">
+        <div class="metrics-label">🔴&nbsp; Kondisi Terkini — Observasi per jam terakhir</div>
+    """, unsafe_allow_html=True)
 
     cols = st.columns(6)
     metrics = [
-        ("Suhu Udara",      f'{latest.get("suhu_bola_kering_c","—"):.1f}',  "°C"),
-        ("Kelembaban",       f'{latest.get("kelembaban_relatif_pct","—"):.0f}', "%"),
-        ("Tekanan QFF",      f'{latest.get("tekanan_qff_mb","—"):.1f}',      "mb"),
-        ("Kec. Angin",       f'{latest.get("wind_speed_ms","—"):.1f}',       "m/s"),
+        ("Suhu Udara",  f'{latest.get("suhu_bola_kering_c","—"):.1f}',  "°C"),
+        ("Kelembaban",  f'{latest.get("kelembaban_relatif_pct","—"):.0f}', "%"),
+        ("Tekanan QFF", f'{latest.get("tekanan_qff_mb","—"):.1f}',       "mb"),
+        ("Kec. Angin",  f'{latest.get("wind_speed_ms","—"):.1f}',        "m/s"),
         ("Arah Angin",
          wind_dir_label(latest.get("wind_dir_deg", 0))
          if pd.notna(latest.get("wind_dir_deg")) else "—", ""),
-        ("Cuaca",
-         cuaca_label(latest.get("cuaca_sekarang_ww")), ""),
+        ("Cuaca", ww_label, ""),
     ]
     for col, (label, val, unit) in zip(cols, metrics):
         col.markdown(metric_html(label, val, unit), unsafe_allow_html=True)
 
+    st.markdown('</div>', unsafe_allow_html=True)
     st.markdown("<br>", unsafe_allow_html=True)
 
 tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([

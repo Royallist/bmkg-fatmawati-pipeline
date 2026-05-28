@@ -758,7 +758,7 @@ def chart_hourly_heatmap(df_hourly, kolom="suhu_bola_kering_c", judul="Suhu (°C
 with st.sidebar:
     st.markdown("""
     <div style="text-align:center;padding:12px 0 16px">
-        <svg width="42" height="42" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:6px">
+        <svg width="42" height="42" viewBox="0 0 36 36" fill="none" xmlns="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi3zT4nNl9s-3YqjTJI0i2Cx2cjNCjPwIyr_i9l3AiG_I4AIbMfRND_geWovxI-p6x3tqRcaLeHk3iBQjnQhiQ57dXLGZNxvUKeEV8ktb79Dbu3cW_zmAVyjFFt1M3N99UqwcnfM-gajpDaoZRgXYWNU5WLK-keWUWsrZJL2SnVOFYIw_chbHwwGAE-/s320/GKL29_BMKG%20-%20Koleksilogo.com.jpg" style="margin-bottom:6px">
           <circle cx="18" cy="18" r="17" fill="#e0f0fa" stroke="#1a6b9a" stroke-width="1.2"/>
           <circle cx="18" cy="18" r="10" fill="none" stroke="#1a6b9a" stroke-width="1.5"/>
           <circle cx="18" cy="18" r="3.5" fill="#1a6b9a"/>

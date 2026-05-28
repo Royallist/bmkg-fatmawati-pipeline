@@ -435,22 +435,33 @@ def metric_html(label, value, unit="", delta=None, delta_label=""):
 
 def chart_timeseries_suhu(df_daily):
     fig = go.Figure()
+
+    col_max = ("suhu_max_tercatat_c"
+               if df_daily["suhu_max_tercatat_c"].notna().sum() > 0
+               else "suhu_max_obs_c")
+    col_min = ("suhu_min_tercatat_c"
+               if df_daily["suhu_min_tercatat_c"].notna().sum() > 0
+               else "suhu_min_obs_c")
+
+    label_max = "Suhu Max (termometer)" if "tercatat" in col_max else "Suhu Max (obs)"
+    label_min = "Suhu Min (termometer)" if "tercatat" in col_min else "Suhu Min (obs)"
+
     fig.add_trace(go.Scatter(
         x=pd.concat([df_daily["date"], df_daily["date"][::-1]]),
-        y=pd.concat([df_daily["suhu_max_tercatat_c"], df_daily["suhu_min_tercatat_c"][::-1]]),
+        y=pd.concat([df_daily[col_max], df_daily[col_min][::-1]]),
         fill="toself", fillcolor="rgba(26,107,154,0.08)",
         line=dict(color="rgba(0,0,0,0)"),
         name="Rentang Tmax–Tmin", hoverinfo="skip",
     ))
     fig.add_trace(go.Scatter(
-        x=df_daily["date"], y=df_daily["suhu_max_tercatat_c"],
+        x=df_daily["date"], y=df_daily[col_max],
         line=dict(color=COLOR_DANGER, width=1.5, dash="dot"),
-        name="Suhu Max", mode="lines",
+        name=label_max, mode="lines",
     ))
     fig.add_trace(go.Scatter(
-        x=df_daily["date"], y=df_daily["suhu_min_tercatat_c"],
+        x=df_daily["date"], y=df_daily[col_min],
         line=dict(color="#3b82f6", width=1.5, dash="dot"),
-        name="Suhu Min", mode="lines",
+        name=label_min, mode="lines",
     ))
     fig.add_trace(go.Scatter(
         x=df_daily["date"], y=df_daily["suhu_rerata_c"],
@@ -626,10 +637,17 @@ def chart_monthly_klimat(df_daily):
     df = df_daily.copy()
     df["bulan"] = df["date"].dt.month
     BULAN = ["Jan","Feb","Mar","Apr","Mei","Jun","Jul","Agu","Sep","Okt","Nov","Des"]
+    col_max = ("suhu_max_tercatat_c"
+               if df_daily["suhu_max_tercatat_c"].notna().sum() > 0
+               else "suhu_max_obs_c")
+    col_min = ("suhu_min_tercatat_c"
+               if df_daily["suhu_min_tercatat_c"].notna().sum() > 0
+               else "suhu_min_obs_c")
+
     monthly = df.groupby("bulan").agg(
         suhu_rerata=("suhu_rerata_c",         "mean"),
-        suhu_max   =("suhu_max_tercatat_c",   "mean"),
-        suhu_min   =("suhu_min_tercatat_c",   "mean"),
+        suhu_max   =(col_max,                 "mean"),
+        suhu_min   =(col_min,                 "mean"),
         hujan_total=("curah_hujan_24h_mm",    "mean"),
         rh_rerata  =("kelembaban_rerata_pct", "mean"),
         sunshine   =("lama_penyinaran_jam",   "mean"),
@@ -788,7 +806,8 @@ with st.sidebar:
 
     st.markdown(f"""
     <div style="font-size:11px;color:#9ca3af;margin-top:12px">
-        Data di-refresh otomatis setiap pukul 00.00.<br>
+        Data di-refresh otomatis setiap 1 jam.<br>
+        Update terakhir pipeline: <b>00:00 WIB</b>
     </div>
     """, unsafe_allow_html=True)
 
@@ -814,19 +833,10 @@ ww_val = latest.get("cuaca_sekarang_ww") if not latest.empty else None
 st.markdown(weather_bg_html(ww_val), unsafe_allow_html=True)
 
 BMKG_LOGO = """
-<svg width="36" height="36" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg">
-  <circle cx="18" cy="18" r="17" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.5)" stroke-width="1"/>
-  <circle cx="18" cy="18" r="10" fill="none" stroke="white" stroke-width="1.5"/>
-  <circle cx="18" cy="18" r="3.5" fill="white"/>
-  <line x1="18" y1="3" x2="18" y2="8"   stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="18" y1="28" x2="18" y2="33" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="3"  y1="18" x2="8"  y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="28" y1="18" x2="33" y2="18" stroke="white" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="7.5"  y1="7.5"  x2="11" y2="11"  stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="25"   y1="25"   x2="28.5" y2="28.5" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="28.5" y1="7.5"  x2="25" y2="11"  stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-  <line x1="11"   y1="25"   x2="7.5" y2="28.5" stroke="white" stroke-width="1.2" stroke-linecap="round"/>
-</svg>"""
+<img src="https://www.bmkg.go.id/images/profil/logo-bmkg.png"
+     width="48" height="48"
+     style="object-fit:contain;filter:brightness(0) invert(1);opacity:0.92;"
+     alt="Logo BMKG">"""
 
 st.markdown(f"""
 <div class="main-header">
@@ -883,13 +893,18 @@ with tab1:
         st.warning("Tidak ada data untuk periode yang dipilih.")
     else:
         c1, c2, c3, c4 = st.columns(4)
+
+        suhu_max_val = df_daily["suhu_max_tercatat_c"].dropna()
+        suhu_min_val = df_daily["suhu_min_tercatat_c"].dropna()
+        suhu_max_str = (f'{suhu_max_val.max():.1f} °C' if len(suhu_max_val) > 0
+                        else f'{df_daily["suhu_max_obs_c"].max():.1f} °C*')
+        suhu_min_str = (f'{suhu_min_val.min():.1f} °C' if len(suhu_min_val) > 0
+                        else f'{df_daily["suhu_min_obs_c"].min():.1f} °C*')
+
         c1.metric("Suhu Rata-rata",
                   f'{df_daily["suhu_rerata_c"].mean():.1f} °C')
-        c2.metric("Suhu Tertinggi",
-                  f'{df_daily["suhu_max_tercatat_c"].max():.1f} °C',
-                  delta=None)
-        c3.metric("Suhu Terendah",
-                  f'{df_daily["suhu_min_tercatat_c"].min():.1f} °C')
+        c2.metric("Suhu Tertinggi", suhu_max_str, delta=None)
+        c3.metric("Suhu Terendah",  suhu_min_str)
         c4.metric("RH Rata-rata",
                   f'{df_daily["kelembaban_rerata_pct"].mean():.0f} %')
 

@@ -134,7 +134,7 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .metrics-label {
     font-size: 11px; font-weight: 600; color: #1a6b9a;
     text-transform: uppercase; letter-spacing: .08em;
-    margin-bottom: 14px;
+    margin-bottom: 14px; text-align: center;
 }
 .metrics-divider {
     height: 1px; background: rgba(26,107,154,0.1); margin: 10px 0 14px;
@@ -144,20 +144,27 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
     backdrop-filter: blur(8px);
     -webkit-backdrop-filter: blur(8px);
     border: 1px solid rgba(255,255,255,0.7);
-    border-radius: 12px; padding: 14px 16px; text-align: center;
+    border-radius: 12px;
+    padding: 16px 12px;
+    text-align: center;
     box-shadow: 0 2px 8px rgba(26,107,154,0.07);
     transition: transform .15s, box-shadow .15s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 80px;
 }
 .metric-card:hover {
     transform: translateY(-2px);
     box-shadow: 0 6px 16px rgba(26,107,154,0.12);
 }
 .metric-label   { font-size: 10px; color: #6b7280; font-weight: 600;
-                  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 6px; }
+                  text-transform: uppercase; letter-spacing: .07em; margin-bottom: 8px; }
 .metric-value   { font-size: 26px; font-weight: 600; color: #1a1f2e;
                   line-height: 1; font-family: 'DM Mono', monospace; }
 .metric-unit    { font-size: 12px; color: #9ca3af; margin-left: 3px; font-weight: 400; }
-.metric-delta   { font-size: 11px; margin-top: 4px; }
+.metric-delta   { font-size: 11px; margin-top: 6px; }
 .metric-delta.up   { color: #ef4444; }
 .metric-delta.down { color: #3b82f6; }
 .metric-delta.same { color: #9ca3af; }
@@ -175,13 +182,26 @@ html, body, [class*="css"] { font-family: 'DM Sans', sans-serif; }
 .badge-red    { background:#fee2e2; color:#991b1b; }
 .badge-blue   { background:#dbeafe; color:#1e40af; }
 
-/* ── Tabs ── */
+/* ── Tabs full width ── */
 .stTabs [data-baseweb="tab-list"] {
-    gap: 4px; background: rgba(245,247,250,0.8);
-    backdrop-filter: blur(6px); padding: 4px; border-radius: 10px;
+    gap: 0;
+    background: rgba(245,247,250,0.8);
+    backdrop-filter: blur(6px);
+    padding: 4px;
+    border-radius: 10px;
+    width: 100%;
 }
 .stTabs [data-baseweb="tab"] {
-    border-radius: 7px; padding: 6px 16px; font-size: 13px; font-weight: 500;
+    border-radius: 7px;
+    padding: 6px 0;
+    font-size: 13px;
+    font-weight: 500;
+    flex: 1;
+    justify-content: center;
+    text-align: center;
+}
+.stTabs [data-baseweb="tab-list"] button {
+    flex: 1;
 }
 
 /* ── Sidebar ── */

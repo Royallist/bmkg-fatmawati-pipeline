@@ -191,7 +191,10 @@ section[data-testid="stSidebar"] {
     border-right: 1px solid rgba(232,236,240,0.8);
 }
 
-[data-testid="stToolbar"], footer, header { visibility: hidden; }
+[data-testid="stToolbar"] { visibility: hidden; }
+footer { visibility: hidden; }
+header { visibility: hidden; }
+[data-testid="collapsedControl"] { visibility: visible !important; display: flex !important; }
 .block-container { padding-top: 1rem; padding-bottom: 2rem; }
 </style>
 """, unsafe_allow_html=True)
@@ -735,21 +738,23 @@ def chart_monthly_klimat(df_daily):
 
 def chart_hourly_heatmap(df_hourly, kolom="suhu_bola_kering_c", judul="Suhu (°C)"):
     df = df_hourly.copy()
-    df["date"] = df["timestamp"].dt.date
-    df["hour"] = df["timestamp"].dt.hour
+    df["timestamp_wib"] = df["timestamp"] + pd.Timedelta(hours=7)
+    df["date"] = df["timestamp_wib"].dt.date
+    df["hour"] = df["timestamp_wib"].dt.hour
     pivot = df.pivot_table(index="date", columns="hour", values=kolom, aggfunc="mean")
+    pivot = pivot.reindex(columns=list(range(24)))
 
     fig = go.Figure(go.Heatmap(
         z=pivot.values,
         x=[f"{h:02d}:00" for h in pivot.columns],
         y=[str(d) for d in pivot.index],
         colorscale="RdYlBu_r" if "suhu" in kolom else "Blues",
-        hovertemplate="Jam %{x}<br>%{y}<br>%{z:.1f}<extra></extra>",
+        hovertemplate="Jam %{x} WIB<br>%{y}<br>%{z:.1f}<extra></extra>",
     ))
     fig.update_layout(
         paper_bgcolor="white", font_family="DM Sans",
         title=f"Heatmap Per Jam — {judul}",
-        xaxis_title="Jam (UTC)", height=380,
+        xaxis_title="Jam (WIB)", height=380,
         margin=dict(l=10, r=10, t=50, b=10),
         yaxis=dict(autorange="reversed"),
     )
@@ -758,7 +763,7 @@ def chart_hourly_heatmap(df_hourly, kolom="suhu_bola_kering_c", judul="Suhu (°C
 with st.sidebar:
     st.markdown("""
     <div style="text-align:center;padding:12px 0 16px">
-        <svg width="42" height="42" viewBox="0 0 36 36" fill="none" xmlns="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEi3zT4nNl9s-3YqjTJI0i2Cx2cjNCjPwIyr_i9l3AiG_I4AIbMfRND_geWovxI-p6x3tqRcaLeHk3iBQjnQhiQ57dXLGZNxvUKeEV8ktb79Dbu3cW_zmAVyjFFt1M3N99UqwcnfM-gajpDaoZRgXYWNU5WLK-keWUWsrZJL2SnVOFYIw_chbHwwGAE-/s320/GKL29_BMKG%20-%20Koleksilogo.com.jpg" style="margin-bottom:6px">
+        <svg width="42" height="42" viewBox="0 0 36 36" fill="none" xmlns="http://www.w3.org/2000/svg" style="margin-bottom:6px">
           <circle cx="18" cy="18" r="17" fill="#e0f0fa" stroke="#1a6b9a" stroke-width="1.2"/>
           <circle cx="18" cy="18" r="10" fill="none" stroke="#1a6b9a" stroke-width="1.5"/>
           <circle cx="18" cy="18" r="3.5" fill="#1a6b9a"/>
@@ -832,11 +837,7 @@ ts_str    = pd.to_datetime(ts_latest).strftime("%d %b %Y, %H:%M UTC") if ts_late
 ww_val = latest.get("cuaca_sekarang_ww") if not latest.empty else None
 st.markdown(weather_bg_html(ww_val), unsafe_allow_html=True)
 
-BMKG_LOGO = """
-<img src="https://www.bmkg.go.id/images/profil/logo-bmkg.png"
-     width="48" height="48"
-     style="object-fit:contain;filter:brightness(0) invert(1);opacity:0.92;"
-     alt="Logo BMKG">"""
+BMKG_LOGO = '''<img src="data:image/svg+xml;base64,PHN2ZyB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHZpZXdCb3g9IjAgMCAxMjAgMTIwIiB3aWR0aD0iNDgiIGhlaWdodD0iNDgiPgogIDxkZWZzPgogICAgPHJhZGlhbEdyYWRpZW50IGlkPSJza3kiIGN4PSI1MCUiIGN5PSI1MCUiIHI9IjUwJSI+CiAgICAgIDxzdG9wIG9mZnNldD0iMCUiIHN0b3AtY29sb3I9IiM4N0NFRUIiLz4KICAgICAgPHN0b3Agb2Zmc2V0PSIxMDAlIiBzdG9wLWNvbG9yPSIjNDY4MkI0Ii8+CiAgICA8L3JhZGlhbEdyYWRpZW50PgogIDwvZGVmcz4KICA8Y2lyY2xlIGN4PSI2MCIgY3k9IjYwIiByPSI1OCIgZmlsbD0idXJsKCNza3kpIiBzdHJva2U9IiMxYTUyNzYiIHN0cm9rZS13aWR0aD0iMiIvPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjQwIiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNyIvPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjIyIiBmaWxsPSJub25lIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIiIG9wYWNpdHk9IjAuNiIvPgogIDxjaXJjbGUgY3g9IjYwIiBjeT0iNjAiIHI9IjYiIGZpbGw9IndoaXRlIi8+CiAgPGxpbmUgeDE9IjYwIiB5MT0iNCIgIHgyPSI2MCIgeTI9IjE4IiAgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8bGluZSB4MT0iNjAiIHkxPSIxMDIiIHgyPSI2MCIgeTI9IjExNiIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIzIiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8bGluZSB4MT0iNCIgIHkxPSI2MCIgeDI9IjE4IiB5Mj0iNjAiICBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxsaW5lIHgxPSIxMDIiIHkxPSI2MCIgeDI9IjExNiIgeTI9IjYwIiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjMiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxsaW5lIHgxPSIxOS41IiB5MT0iMTkuNSIgeDI9IjI5LjUiIHkyPSIyOS41IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPGxpbmUgeDE9IjkwLjUiIHkxPSI5MC41IiB4Mj0iMTAwLjUiIHkyPSIxMDAuNSIgc3Ryb2tlPSJ3aGl0ZSIgc3Ryb2tlLXdpZHRoPSIyLjUiIHN0cm9rZS1saW5lY2FwPSJyb3VuZCIvPgogIDxsaW5lIHgxPSIxMDAuNSIgeTE9IjE5LjUiIHgyPSI5MC41IiB5Mj0iMjkuNSIgIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMi41IiBzdHJva2UtbGluZWNhcD0icm91bmQiLz4KICA8bGluZSB4MT0iMjkuNSIgIHkxPSI5MC41IiB4Mj0iMTkuNSIgeTI9IjEwMC41IiBzdHJva2U9IndoaXRlIiBzdHJva2Utd2lkdGg9IjIuNSIgc3Ryb2tlLWxpbmVjYXA9InJvdW5kIi8+CiAgPHBvbHlnb24gcG9pbnRzPSI2MCwyMiA2NSwzOCA4MiwzOCA2OCw0OCA3Myw2NCA2MCw1NCA0Nyw2NCA1Miw0OCAzOCwzOCA1NSwzOCIKICAgICAgICAgICBmaWxsPSIjRkZENzAwIiBzdHJva2U9IiNGRkE1MDAiIHN0cm9rZS13aWR0aD0iMSIvPgo8L3N2Zz4=" width="48" height="48" style="object-fit:contain;opacity:0.92;" alt="Logo BMKG">'''
 
 st.markdown(f"""
 <div class="main-header">
